@@ -2,128 +2,318 @@ var eventproxy = require('eventproxy');
 var cheerio = require('cheerio');
 var superagent = require('superagent');
 var url = require('url');
-
+var fs = require('fs');
+var path = require('path');
+// var request = require('request');
+var http = require('http');
+var utility = require('utility');
+// var mongoose = require('mongoose');
 // var targetUrlArr = ['http://www.shixiseng.com/interns.html?kd=&xl=&yx=&st=&city=杭州&com_id=&day=&searchtype=1',
 // 'http://www.shixiseng.com/interns.html?kd=&xl=&yx=&st=&city=杭州&com_id=&day=&searchtype=1&page=55']
 // var targetUrl = 'http://www.shixiseng.com/interns.html?kd=&xl=&yx=&st=&city=杭州&com_id=&day=&searchtype=1&page='+i;
+// mongoose.connect('mongodb://admin:klomSU6prSBS@localhost:27017/admin');
+// var Bear = require('./app/models/bear');
+// var Dpost = mongoose.model('Dpost', { 
+// 	name: String ,
+// 	postId: Number ,
+// 	jobTitle: String ,		
+// 	postUrl: String ,
+// 	publishTime: String ,
+// 	deadline: String ,	
+// 	company: String ,
+// 	companyClass: String ,
+// 	companySize: String ,
+// 	companyPage: String ,
+// 	jobRequest: Array ,
+// 	jobDescription: String ,
+// 	jobAddress: String ,
+// 	baiduMapPoint: String
+// });
+
 
 
 
 function getEveryPage(basicUrl, i) {
 
-	superagent.get(basicUrl + i)
-		.end(function (err, res) {
+	superagent.get( basicUrl + i )
+		.end(function (err, sres) {
 			if (err) {
 				return console.error(err);
 			}
-			var postUrls = [];
-			var $ = cheerio.load(res.text);
-			// 获取目标页的所有链
-			// console.log($('#div_intern_info').find('a').eq(0).attr('href'));
-			$('#div_intern_info').each(function(i){  
-	   			var href = $(this).find('a').eq(0).attr('href');
-	   			postUrls.push(href);
-			});
-			console.log('now is getting page :' + i);
-			console.log(postUrls);
-			console.log('had ' + postUrls.length +' posts');
-			console.log('=================');
-		
-
-			//
-			// if ( postUrls.length == 400 ) {
-			var ep = new eventproxy();
-			ep.after('post_html', postUrls.length, function (posts) {
-			// 重复异步协作
-			// ep.after('got_file', files.length, function (list) { }
-			// 在所有文件的异步执行结束后将被执行
-		  	// 所有文件的内容都存在 posts 数组中
-		  		
-				posts = posts.map(function (postpair) {
-				// var mappedArray = array.map(callback[, thisObject]);
-				// 对数组中的每个元素都执行一次指定的函数（callback），
-				// 并且以每次返回的结果为元素创建一个新数组
-					var postUrl = postpair[0];
-					var postHtml = postpair[1];
-					// console.log(postpair);
-					var $ = cheerio.load(postHtml);
-					// var $('#map_address').attr('data-address');
-					var address = $('#map_address').attr('data-address');
-					var finalAddress = 'http://api.map.baidu.com/geocoder/v2/?address=' + address + '&output=json&ak=7145965faed574a482592e67cd963abd&callback=showLocation&city=杭州市';
-					console.log(finalAddress);						
-					
-						superagent.get(finalAddress)
-							.end(function (err, res) {
-								if (err) {
-									return console.error(err);
-								};
-								resdata = res.text;
-								// console.log('m1:' + resdata);											
-							});
-
-				
-					// console.log('m2:' + global.resdata);
-					var baiduMapData = global.resdata;
-					var baiduMapData = String(baiduMapData);
-					var baiduMapPoint = baiduMapData.substr(61, 43);
-
-					console.log('MMMMM:' + baiduMapPoint);
-					
-					return ({
-
-						postId: parseInt(postUrl.substr(32)),
-						jobTitle: $('h1').attr('title'),		
-						postUrl: postUrl,
-						publishTime: $('.publish_time').text().trim(),
-						deadline: $('.job_bt').find('.div_border').eq(1).text().trim(),	
-						company: $('#company_name').text().trim(),
-						companyClass: $('.div_moveup').find('li').eq(0).text().substr(4),
-						companySize: $('.div_moveup').find('li').eq(1).text().substr(4),
-						companyPage: $('.div_moveup').find('li').eq(2).find('a').attr('href'),
-						jobRequest: [$('.job_request').find('span').eq(0).text(),
-									 $('.job_request').find('span').eq(1).text(),
-									 $('.job_request').find('span').eq(2).text(),
-									 $('.job_request').find('span').eq(3).text(),
-									 $('.job_request').find('span').eq(4).text()],
-						jobDescription: $('.job_bt').find('.div_border').eq(0).text().trim(),
-						jobAddress: address,
-						baiduMapPoint: baiduMapPoint
-						// baiduMapPoint: resdata,
-							
-							
-		      			// href: postUrl,
-					});
-				});
-			  	console.log('final:');
-			 	console.log(posts);
-			});
-
-
 			
-			postUrls.forEach(function (postUrl) {
-			  superagent.get(postUrl)
-			    .end(function (err, res) {
-			    	console.log(postUrl);
-			      	console.log('fetch ' + postUrl + ' successful.');
-			      	ep.emit('post_html', [postUrl, res.text]);
-			    });
-			});
-// };
-		
+			var $ = cheerio.load(sres.text);
+      
+			// console.log($('.shopList').find('.fix').find('a').eq(0).attr('href'));
+	    $('.shopList').each(function () {
+	      var name = $(this).find('.fix').eq(0).find('a').eq(0).text().trim();
+ 	      var homepage = $(this).find('.fix').eq(0).find('a').eq(1).attr('href');
+	      var ca_pic = $(this).find('.fix').eq(1).find('img').eq(0).attr('src');
+	      
+	      var ca_info1 = $(this).find('.fix').eq(1).find('p').eq(0).text().trim();
+	      var ca_info2 = $(this).find('.fix').eq(1).find('p').eq(1).text().trim();
+	      var ca_info3 = $(this).find('.fix').eq(1).find('p').eq(2).text().trim().replace(/\r\n|\n/g,"").replace(/\s+/g, "");
+
+	      var dbz1_title = $(this).find('.fix').eq(1).find('a').eq(1).attr('title');
+	      var dbz1_page = $(this).find('.fix').eq(1).find('a').eq(1).attr('href');
+	      var dbz1_pic = $(this).find('.fix').eq(1).find('img').eq(1).attr('src');
+	      var dbz1_pic_big = String(dbz1_pic).substr(0, 58) + '.abig.jpg';
+
+	      var dbz2_title = $(this).find('.fix').eq(1).find('a').eq(2).attr('title');
+	      var dbz2_page = $(this).find('.fix').eq(1).find('a').eq(2).attr('href');
+	      var dbz2_pic = $(this).find('.fix').eq(1).find('img').eq(2).attr('src');
+	      var dbz2_pic_big = String(dbz2_pic).substr(0, 58) + '.abig.jpg';
+
+	      var dbz3_title = $(this).find('.fix').eq(1).find('a').eq(3).attr('title');
+	      var dbz3_page = $(this).find('.fix').eq(1).find('a').eq(3).attr('href');
+	      var dbz3_pic = $(this).find('.fix').eq(1).find('img').eq(3).attr('src');
+	      var dbz3_pic_big = String(dbz3_pic).substr(0, 58) + '.abig.jpg';
+
+	      var ca_data = {
+	      							// "name:" + name + "\n" + 
+	      							// "homepage" + homepage + "\n" +
+	      							// "ca_pic:" + ca_pic + "\n" +
+	      							// "ca_pic_big:" + ca_pic_big + "\n" +
+	      							// "ca_info1:" + ca_info1 + "\n" +
+	      							// "ca_info2:" + ca_info2 + "\n" +
+	      							// "ca_info3:" + ca_info3 + "\n" +
+	      							// "dbz1_title:" + dbz1_title + "\n" +
+	      							// "dbz1_page:" + dbz1_page + "\n" +
+	      							// "dbz1_pic:" + dbz1_pic + "\n" +
+	      							// "dbz1_pic_big:" + dbz1_pic_big + "\n" +
+	      							// "dbz2_title:" + dbz2_title + "\n" +
+	      							// "dbz2_page:" + dbz2_page + "\n" +
+	      							// "dbz2_pic:" + dbz2_pic + "\n" +
+	      							// "dbz2_pic_big:" + dbz2_pic_big + "\n" +
+	      							// "dbz3_title:" + dbz3_title + "\n" +
+	      							// "dbz3_page:" + dbz3_page + "\n" +
+	      							// "dbz3_pic:" + dbz3_pic + "\n" +
+	      							// "dbz3_pic_big:" + dbz3_pic_big
+	      							// ;
+	      	name: name, 
+	      	homepage: homepage, 
+	      	ca_pic: ca_pic,
+	      	ca_info1: ca_info1, 
+	      	ca_info2: ca_info2, 
+	      	ca_info3: ca_info3,
+	      	dbz1_title: dbz1_title,
+	      	dbz1_page: dbz1_page,
+	      	dbz1_pic: dbz1_pic,
+	      	dbz1_pic_big: dbz1_pic_big,
+	      	dbz2_title: dbz2_title,
+	      	dbz2_page: dbz2_page,
+	      	dbz2_pic: dbz2_pic,
+	      	dbz2_pic_big: dbz2_pic_big,
+	      	dbz3_title: dbz3_title,
+	      	dbz3_page: dbz3_page,
+	      	dbz3_pic: dbz3_pic,
+	      	dbz3_pic_big: dbz3_pic_big
+	      };
+				console.log(ca_data);
+				var ca_data_str = JSON.stringify(ca_data, null, 4);
+				console.log(ca_data_str);
+	      // fs.mkdir(path, [mode], callback)
+				// mode 默认为 0777，表示可读可写
+				// var id = homepage.substr(21, 20);
+				// console.log(ca_data_str);
+				fs.mkdirSync('./ca_69_data/' + name);
+
+				fs.writeFile('./ca_69_data/' + name + '/info.json', ca_data_str, 'utf-8', function(err){ 
+					 if(err){ 
+					 		throw err;
+					 }else{ 
+					 		console.log('保存成功, 赶紧去看看乱码吧'); 
+					 } 
+				});
+
+				process.on('uncaughtException', function (err) {
+				    console.log(err);
+				}); 
+				// fs.writeFile('./ca_69_data/' + name + '/info.json', ca_data_str, function (err) {
+				//   if (err) {
+				//   	console.log(err);
+				//   };
+				//   console.log('It\'s saved!');
+				// });
+
+				// ca_pic
+				http.get(ca_pic , function(res){
+          var imgData = '';
+          res.setEncoding('binary'); //一定要设置response的编码为binary否则会下载下来的图片打不开
+          res.on('data', function(chunk){
+              imgData+=chunk;
+          });
+          res.on('end', function(){
+
+                fileName  = utility.md5(imgData);
+
+                fs.writeFile('./ca_69_data/' + name + '/ca_pic.jpg', imgData, 'binary', function (err){
+                		if (err) {
+									  	throw err;
+									  };
+  									console.log('It\'s saved!');
+               });
+
+        	});
+
+				});
+				
+				// dbz1_pic
+				http.get(dbz1_pic , function(res){
+          var imgData = '';
+          res.setEncoding('binary'); //一定要设置response的编码为binary否则会下载下来的图片打不开
+          res.on('data', function(chunk){
+              imgData+=chunk;
+          });
+          res.on('end', function(){
+
+                fileName  = utility.md5(imgData);
+
+                fs.writeFile('./ca_69_data/' + name + '/dbz1_pic.jpg', imgData, 'binary', function (err){
+                		if (err) {
+									  	throw err;
+									  };
+  									console.log('It\'s saved!');
+               });
+
+        	});
+
+				});
+				// dbz1_pic_big
+				http.get(dbz1_pic_big , function(res){
+          var imgData = '';
+          res.setEncoding('binary'); //一定要设置response的编码为binary否则会下载下来的图片打不开
+          res.on('data', function(chunk){
+              imgData+=chunk;
+          });
+          res.on('end', function(){
+
+                fileName  = utility.md5(imgData);
+
+                fs.writeFile('./ca_69_data/' + name + '/dbz1_pic_big.jpg', imgData, 'binary', function (err){
+                		if (err) {
+									  	throw err;
+									  };
+  									console.log('It\'s saved!');
+               });
+
+        	});
+
+				});
+				// dbz2_pic
+				http.get(dbz2_pic , function(res){
+          var imgData = '';
+          res.setEncoding('binary'); //一定要设置response的编码为binary否则会下载下来的图片打不开
+          res.on('data', function(chunk){
+              imgData+=chunk;
+          });
+          res.on('end', function(){
+
+                fileName  = utility.md5(imgData);
+
+                fs.writeFile('./ca_69_data/' + name + '/dbz2_pic.jpg', imgData, 'binary', function (err){
+                		if (err) {
+									  	throw err;
+									  };
+  									console.log('It\'s saved!');
+               });
+
+        	});
+
+				});
+				// dbz2_pic_big
+				http.get(dbz2_pic_big , function(res){
+          var imgData = '';
+          res.setEncoding('binary'); //一定要设置response的编码为binary否则会下载下来的图片打不开
+          res.on('data', function(chunk){
+              imgData+=chunk;
+          });
+          res.on('end', function(){
+
+                fileName  = utility.md5(imgData);
+
+                fs.writeFile('./ca_69_data/' + name + '/dbz2_pic_big.jpg', imgData, 'binary', function (err){
+                		if (err) {
+									  	throw err;
+									  };
+  									console.log('It\'s saved!');
+               });
+
+        	});
+
+				});
+				// dbz3_pic
+				http.get(dbz3_pic , function(res){
+          var imgData = '';
+          res.setEncoding('binary'); //一定要设置response的编码为binary否则会下载下来的图片打不开
+          res.on('data', function(chunk){
+              imgData+=chunk;
+          });
+          res.on('end', function(){
+
+                fileName  = utility.md5(imgData);
+
+                fs.writeFile('./ca_69_data/' + name + '/dbz3_pic.jpg', imgData, 'binary', function (err){
+                		if (err) {
+									  	throw err;
+									  };
+  									console.log('It\'s saved!');
+               });
+
+        	});
+
+				});
+				// dbz3_pic_big
+				http.get(dbz3_pic_big , function(res){
+          var imgData = '';
+          res.setEncoding('binary'); //一定要设置response的编码为binary否则会下载下来的图片打不开
+          res.on('data', function(chunk){
+              imgData+=chunk;
+          });
+          res.on('end', function(){
+
+                fileName  = utility.md5(imgData);
+
+                fs.writeFile('./ca_69_data/' + name + '/dbz3_pic_big.jpg', imgData, 'binary', function (err){
+                		if (err) {
+									  	throw err;
+									  };
+  									console.log('It\'s saved!');
+               });
+
+        	});
+
+				});
+
+		    
+
+    //     fs.writeFile('ca_69_data/' + name + '/ca_pic.jpg', ca_pic, function (err) {
+    //     	if (err) next(err);
+				//   console.log('It\'s saved!');
+				// });
+				 
+
+						
+	
+
+    });
+      
+  
+		console.log('now is getting page :' + i);
+			// console.log(postUrls);
+			// console.log('had ' + postUrls.length +' posts');
+		console.log('=================');
+			// return postUrls;
 	});
 
-
-
-
-
-		
 };
-// 
+		
+fs.mkdir('./ca_69_data/', function (err) {
+	if (err) { throw err };
+});
 
-for (var i = 1; i < 55; i++) {
-	var basicUrl = 'http://www.shixiseng.com/interns.html?kd=&xl=&yx=&st=&city=杭州&com_id=&day=&searchtype=1&page=';
+for (var i = 1; i < 8; i++) {
+	var basicUrl = 'http://ca.artron.net/list?page=';
 	getEveryPage(basicUrl, i);
-
 };
 // var targetUrl = basicUrl + i;
 // console.log(postUrls);
