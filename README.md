@@ -1,11 +1,5 @@
 # Crawler4art
 
-## 平台 Platform
-
-Node.js
-
-## 这是啥 What
-
 抓取网站上的文字和图片，存到本地。
 
 Web crawl , saved as folders.
@@ -13,6 +7,11 @@ Web crawl , saved as folders.
 一套文字和图片存进一个文件夹。
 
 Every folder contains picture and data(JSON).
+
+
+## 平台 Platform
+
+Node.js
 
 ## 如何启动 How
 
